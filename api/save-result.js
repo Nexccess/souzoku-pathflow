@@ -58,9 +58,11 @@ async function getGoogleAccessToken(sa) {
     .replace('-----BEGIN PRIVATE KEY-----', '')
     .replace('-----END PRIVATE KEY-----', '')
     .replace(/\s+/g, '');
+  // Uint8Array.from().buffer はdetachedになる場合があるため、
+  // slice()でコピーした新規ArrayBufferを渡す
   const keyBuf = Uint8Array.from(atob(pemKey), c => c.charCodeAt(0));
   const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8', keyBuf.buffer,
+    'pkcs8', keyBuf.buffer.slice(0),
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false, ['sign']
   );
@@ -68,10 +70,10 @@ async function getGoogleAccessToken(sa) {
     'RSASSA-PKCS1-v1_5', cryptoKey,
     new TextEncoder().encode(sigInput)
   );
-  const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuf)))
+  const sigB64 = btoa(Array.from(new Uint8Array(sigBuf)).map(b => String.fromCharCode(b)).join(''))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-  const jwt = `${sigInput}.${sig}`;
+  const jwt = `${sigInput}.${sigB64}`;
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -103,7 +105,10 @@ async function writeToSheet(token, data) {
     data.nextAction || '',            // K: ネクストアクション
   ];
 
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${ssId}/values/${encodeURIComponent(SHEET_NAME)}!A:K:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  // Sheets v4 append: /values/{range}:append
+  // range は「シート名!A:K」全体をencodeする必要がある
+  const range = encodeURIComponent(`${SHEET_NAME}!A:K`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${ssId}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
