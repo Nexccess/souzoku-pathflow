@@ -2515,33 +2515,50 @@ a:hover {
     if (state.currentStep > 1) goToStep(state.currentStep - 1);
   };
 
-  // ─── AI診断実行 ────────────────────────────────────
+  // ─── AI診断実行（クライアントサイドのみ）────────────
   async function runDiagnosis() {
     showPanel('loading');
-    try {
-      const res = await fetch('/api/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: state.answers }),
-      });
-      if (!res.ok) throw new Error('診断APIエラー: ' + res.status);
-      const data = await res.json();
-      state.diagResult = data;
-      renderResult(data);
-      showPanel('result');
-    } catch (e) {
-      // フォールバック表示
-      const fallback = {
-        score: 55,
-        level: 'B（早期対応推奨）',
-        summary: '相続準備において複数の課題が確認されました。早期に専門家へご相談いただくことをお勧めします。',
-        issues: ['財産の全体把握と評価が必要です', '遺言書の作成・見直しをご検討ください', '二次相続を含めた長期的な税負担の試算が必要です'],
-        nextAction: '専門家との無料相談で、現状の財産把握から始めましょう。',
-      };
-      state.diagResult = fallback;
-      renderResult(fallback);
-      showPanel('result');
-    }
+    await new Promise(r => setTimeout(r, 500));
+    const result = calcDiagnosis(state.answers);
+    state.diagResult = result;
+    renderResult(result);
+    showPanel('result');
+  }
+
+  // ─── ルールベース診断ロジック ──────────────────────
+  function calcDiagnosis(answers) {
+    let score = 70;
+    const issues = [];
+
+    if (answers[0].includes('まったく'))        { score -= 30; issues.push('遺言書が未作成のため、争族リスクが高い状態です'); }
+    else if (answers[0].includes('断片的'))     { score -= 15; issues.push('財産の全体像把握と遺言書作成を優先してください'); }
+    else if (answers[0].includes('遺言書なし')) { score -= 10; issues.push('遺言書の作成・見直しをご検討ください'); }
+
+    if (answers[1].includes('不動産'))          { score -= 10; issues.push('不動産評価と小規模宅地特例の適用可否を確認する必要があります'); }
+    if (answers[1].includes('自社株'))          { score -= 10; issues.push('自社株評価と後継者への集中移転スキームの検討が急務です'); }
+
+    if (answers[3].includes('後継者未定'))      { score -= 15; issues.push('後継者が未定のため、事業承継計画の早期策定が必要です'); }
+    if (answers[4].includes('何をすべきか'))    { score -= 5;  issues.push('相続手続きの全体像を把握するところから始めましょう'); }
+
+    score = Math.max(10, Math.min(90, score));
+    const level = score < 40 ? 'A（緊急対応推奨）'
+                : score < 70 ? 'B（早期対応推奨）'
+                :              'C（計画的対応）';
+
+    if (issues.length === 0) issues.push('基本的な準備は整っています。さらなる最適化のため専門家へご相談ください');
+
+    const recommended_menu = level.startsWith('A') ? '緊急相続対策プラン'
+                           : level.startsWith('B') ? '相続準備スタートプラン'
+                           :                         '相続最適化プラン';
+
+    return {
+      score,
+      level,
+      summary: '相続準備スコアは' + score + '点（' + level + '）です。' + answers[4] + 'についての対策が重要です。',
+      issues,
+      nextAction: '専門家との無料相談で、現状の財産把握と優先課題を整理しましょう。',
+      recommended_menu,
+    };
   }
 
   // ─── 結果表示 ──────────────────────────────────────
@@ -2595,18 +2612,24 @@ a:hover {
     submitBtn.disabled = true;
     submitBtn.textContent = '送信中...';
 
+    // save-shigyou.js と同一フィールド構成で送信
     const payload = {
-      name, email, phone, date, time,
-      score:      state.diagResult?.score ?? 0,
-      level:      state.diagResult?.level ?? '',
-      summary:    state.diagResult?.summary ?? '',
-      issues:     state.diagResult?.issues ?? [],
-      nextAction: state.diagResult?.nextAction ?? '',
-      answers:    state.answers,
+      name,
+      phone,
+      email,
+      date,
+      time,
+      date2:            '',
+      time2:            '',
+      recommended_menu: state.diagResult?.recommended_menu ?? '',
+      score:            state.diagResult?.score ?? '',
+      level:            state.diagResult?.level ?? '',
+      answers:          state.answers,
+      lp:               'souzoku-v1',
     };
 
     try {
-      const res = await fetch('/api/save-result', {
+      const res = await fetch('/api/save-shigyou', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
