@@ -8,9 +8,10 @@
  *
  * タブ集計定義:
  *   ALL         = 全LP合算
- *   pathflow    = pathflow-v1 + pathflow-v2 + pathflow-main + pathflow-partner
- *   shigyo      = shigyo-v1 + shigyou-v1
- *   seisaku     = seisaku-v1
+ *   pathflow-v1 = pathflow-v1 + pathflow-v2 + pathflow-main + pathflow-partner
+ *   shigyou-v1  = shigyo-v1 + shigyou-v1
+ *   seisaku-v1  = seisaku-v1
+ *   souzoku-v1  = souzoku-v1
  *
  * 新サイト追加:
  *   1. LP_DEFS に LP_ID を追記
@@ -33,6 +34,7 @@ const LP_DEFS = [
   'shigyo-v1',
   'shigyou-v1',
   'seisaku-v1',
+  'souzoku-v1',
 ];
 
 // タブ → LP_ID の集計グループ定義
@@ -40,6 +42,7 @@ const TABS = {
   'pathflow-v1': ['pathflow-v1', 'pathflow-v2', 'pathflow-main', 'pathflow-partner'],
   'shigyou-v1':  ['shigyo-v1', 'shigyou-v1'],
   'seisaku-v1':  ['seisaku-v1'],
+  'souzoku-v1':  ['souzoku-v1'],
 };
 
 function fmtDate(d) {
@@ -129,7 +132,7 @@ export default async function handler() {
 
   const errors = [];
   // LP_ID ごとの月次 KPI を逐次取得（300ms間隔）
-  const lpData = {}; // { 'pathflow-v1': { pv, diag, book }, ... }
+  const lpData = {};
 
   for (const lpId of LP_DEFS) {
     const row = { pv: 0, diag: 0, book: 0 };
@@ -163,17 +166,19 @@ export default async function handler() {
 
   const allIds = LP_DEFS;
   const kpi = {
-    ALL:          sum(allIds),
+    ALL:           sum(allIds),
     'pathflow-v1': sum(TABS['pathflow-v1']),
     'shigyou-v1':  sum(TABS['shigyou-v1']),
     'seisaku-v1':  sum(TABS['seisaku-v1']),
+    'souzoku-v1':  sum(TABS['souzoku-v1']),
   };
 
   const weekly = {
-    ALL:          weeklyArr,
+    ALL:           weeklyArr,
     'pathflow-v1': weeklyArr,
     'shigyou-v1':  weeklyArr,
     'seisaku-v1':  weeklyArr,
+    'souzoku-v1':  weeklyArr,
   };
 
   return new Response(
