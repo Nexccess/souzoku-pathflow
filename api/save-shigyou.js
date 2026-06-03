@@ -1,4 +1,4 @@
-// api/save-shigyou.js  – v3.4準拠
+// api/save-result.js  – v3.4準拠（save-shigyou.jsベース）
 // Nodemailer + Gmail App Password
 import { google } from 'googleapis';
 import nodemailer from 'nodemailer';
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
     // ── 1. Spreadsheet書込み ────────────────────────────────
     const sheets   = google.sheets({ version: 'v4', auth: authClient });
-    const SHEET_ID = process.env.SHIGYOU_SPREADSHEET_ID;
+    const SHEET_ID = process.env.SPREADSHEET_ID;  // 相続LP用SS ID
     const sheetName = SHEET_NAME;
 
     // ヘッダー行チェック（初回のみ自動挿入）
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
       requestBody: {
         values: [[
           now,
-          lp || 'pathflow-v1',
+          lp || 'souzoku-v1',  // 相続LP用LP_ID
           name,
           phone || '',
           email,
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
         requestBody: {
           summary: `【仮予約】${name} 様`,
           description: [
-            `LP: ${lp || 'pathflow-v1'}`,
+            `LP: ${lp || 'souzoku-v1'}`,
             `お名前: ${name}`,
             `携帯: ${phone || '-'}`,
             `メール: ${email}`,
@@ -126,9 +126,9 @@ export default async function handler(req, res) {
         from: `"Path-Flow" <${process.env.GMAIL_USER || 'info.nexccess@gmail.com'}>`,
         to:      NOTIFY_EMAIL,
         replyTo: email,
-        subject: `【Path-Flow 予約通知】${name} 様 / ${date1Str}`,
+        subject: `【Path-Flow 相続診断 予約通知】${name} 様 / ${date1Str}`,
         text: [
-          '■ Path-Flow AI診断 予約通知',
+          '■ Path-Flow AI診断（相続） 予約通知',
           '',
           `お名前：${name}`,
           `携帯電話：${phone || '-'}`,
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           '',
           `診断回答：${answersStr}`,
           '',
-          `LP識別：${lp || 'pathflow-v1'}`,
+          `LP識別：${lp || 'souzoku-v1'}`,
           `送信日時：${now}`,
         ].join('\n'),
       });
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
 
   } catch (err) {
-    console.error('save-shigyou error:', err.message);
+    console.error('save-result error:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }
