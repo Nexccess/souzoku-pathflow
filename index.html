@@ -2537,6 +2537,10 @@ a:hover {
     if (answers[1].includes('不動産'))          { score -= 10; issues.push('不動産評価と小規模宅地特例の適用可否を確認する必要があります'); }
     if (answers[1].includes('自社株'))          { score -= 10; issues.push('自社株評価と後継者への集中移転スキームの検討が急務です'); }
 
+    // Q3: 相続人の人数・関係性
+    if (answers[2].includes('3人以上'))         { score -= 10; issues.push('相続人が多いため、遺産分割協議が複雑になる可能性があります'); }
+    if (answers[2].includes('兄弟・親族'))      { score -= 10; issues.push('兄弟・親族のみの相続は争族リスクが高まりやすい状況です'); }
+
     if (answers[3].includes('後継者未定'))      { score -= 15; issues.push('後継者が未定のため、事業承継計画の早期策定が必要です'); }
     if (answers[4].includes('何をすべきか'))    { score -= 5;  issues.push('相続手続きの全体像を把握するところから始めましょう'); }
 
