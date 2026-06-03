@@ -3,7 +3,7 @@
 import { google } from 'googleapis';
 import nodemailer from 'nodemailer';
 
-const SHEET_NAME   = process.env.SHEET_NAME || 'AI診断結果';
+const SHEET_NAME   = process.env.SHEET_NAME || '相続診断';
 const NOTIFY_EMAIL = process.env.GMAIL_USER  || 'info.nexccess@gmail.com';
 
 const HEADERS = [
